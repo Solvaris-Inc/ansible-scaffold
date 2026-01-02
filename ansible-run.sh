@@ -4,11 +4,20 @@
 IMAGE_NAME="ghcr.io/solvaris-inc/ansible-scaffold:latest"
 
 # Load local .env secrets if they exist
-if [ -f .env ]; then 
+if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
-# Ensure terminal is interactive for prompts
+# Detect Podman Socket path (different for root vs user)
+# We only mount it if it actually exists on the host
+SOCKET_MOUNT=""
+if [ -S "/run/user/$(id -u)/podman/podman.sock" ]; then
+    SOCKET_MOUNT="-v /run/user/$(id -u)/podman/podman.sock:/run/podman/podman.sock:Z"
+elif [ -S "/run/podman/podman.sock" ]; then
+    SOCKET_MOUNT="-v /run/podman/podman.sock:/run/podman/podman.sock:Z"
+fi
+
+# Ensure terminal is interactive
 INTERACTIVE_FLAG="-it"
 [ ! -t 0 ] && INTERACTIVE_FLAG="-t"
 
@@ -18,6 +27,6 @@ podman run --rm ${INTERACTIVE_FLAG} --privileged \
   --env-file <(env | grep -E 'GOOGLE_|ANSIBLE_|VYOS_|PROXMOX_') \
   -v "$(pwd)":/work:Z \
   -v ~/.ssh:/root/.ssh:ro \
-  -v /run/user/$(id -u)/podman/podman.sock:/run/podman/podman.sock:Z \
+  ${SOCKET_MOUNT} \
   ${IMAGE_NAME} \
   ansible-playbook "$@"
