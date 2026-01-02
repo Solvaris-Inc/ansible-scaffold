@@ -1,0 +1,11 @@
+# Ignore local secrets
+.env
+*.key.json
+keys/
+
+# Ignore Ansible temp files
+*.retry
+.ansible/
+
+# OS specific
+.DS_Store
